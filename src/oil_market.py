@@ -48,7 +48,11 @@ def fetch_price_from_yahoo(symbol: str) -> dict | None:
         result = data["chart"]["result"][0]
         meta = result["meta"]
         quote = result["indicators"]["quote"][0]
-        timestamps = result["timestamp"]
+        timestamps = result.get("timestamp", [])
+
+        if not timestamps:
+            logger.warning("No timestamp data returned for %s", symbol)
+            return None
 
         # 获取最新一天的数据
         idx = -1
@@ -57,11 +61,11 @@ def fetch_price_from_yahoo(symbol: str) -> dict | None:
             "previous_close": meta.get("chartPreviousClose"),
             "currency": meta.get("currency", "USD"),
             "exchange": meta.get("exchangeName", "N/A"),
-            "open": quote["open"][idx] if quote["open"][idx] else None,
-            "high": quote["high"][idx] if quote["high"][idx] else None,
-            "low": quote["low"][idx] if quote["low"][idx] else None,
-            "close": quote["close"][idx] if quote["close"][idx] else None,
-            "volume": quote["volume"][idx] if quote["volume"][idx] else None,
+            "open": quote["open"][idx] if quote.get("open") and len(quote["open"]) > 0 else None,
+            "high": quote["high"][idx] if quote.get("high") and len(quote["high"]) > 0 else None,
+            "low": quote["low"][idx] if quote.get("low") and len(quote["low"]) > 0 else None,
+            "close": quote["close"][idx] if quote.get("close") and len(quote["close"]) > 0 else None,
+            "volume": quote["volume"][idx] if quote.get("volume") and len(quote["volume"]) > 0 else None,
             "date": datetime.fromtimestamp(timestamps[idx], tz=timezone.utc).strftime(
                 "%Y-%m-%d"
             ),
