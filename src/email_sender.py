@@ -20,6 +20,7 @@ def send_email(
     subject: str,
     text_content: str,
     html_content: str,
+    use_starttls: bool = False,
 ) -> bool:
     """
     通过 SMTP 发送邮件
@@ -33,6 +34,7 @@ def send_email(
         subject: 邮件主题
         text_content: 纯文本内容（备用）
         html_content: HTML 内容
+        use_starttls: 是否使用 STARTTLS (端口 587)，默认 False 使用 SSL (端口 465)
 
     Returns:
         是否发送成功
@@ -49,9 +51,17 @@ def send_email(
         msg.attach(part1)
         msg.attach(part2)
 
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, msg.as_string())
+        if use_starttls:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(sender_email, sender_password)
+                server.sendmail(sender_email, recipient_email, msg.as_string())
+        else:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, sender_password)
+                server.sendmail(sender_email, recipient_email, msg.as_string())
 
         logger.info("Email sent successfully to %s", recipient_email)
         return True

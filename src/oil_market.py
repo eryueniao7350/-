@@ -8,15 +8,19 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+import pandas as pd
 import yfinance as yf
+from jinja2 import Template
 
 logger = logging.getLogger(__name__)
+
+TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M UTC"
 
 # 全球主要石油期货代码 (Yahoo Finance tickers)
 OIL_TICKERS = {
     "CL=F": "WTI 原油 (West Texas Intermediate)",
     "BZ=F": "布伦特原油 (Brent Crude)",
-    "SI=F": "上海原油期货 (Shanghai INE Crude)",
+    "SC=F": "上海原油期货 (Shanghai INE Crude)",
 }
 
 
@@ -62,7 +66,7 @@ def fetch_oil_prices() -> list[OilMarketData]:
                         volume=None,
                         currency="USD",
                         timestamp=datetime.now(timezone.utc).strftime(
-                            "%Y-%m-%d %H:%M UTC"
+                            TIMESTAMP_FORMAT
                         ),
                     )
                 )
@@ -74,7 +78,8 @@ def fetch_oil_prices() -> list[OilMarketData]:
             )
             day_high = float(hist["High"].iloc[-1])
             day_low = float(hist["Low"].iloc[-1])
-            volume = int(hist["Volume"].iloc[-1]) if hist["Volume"].iloc[-1] else None
+            raw_volume = hist["Volume"].iloc[-1]
+            volume = int(raw_volume) if pd.notna(raw_volume) and raw_volume > 0 else None
 
             change = None
             change_percent = None
@@ -99,7 +104,7 @@ def fetch_oil_prices() -> list[OilMarketData]:
                     volume=volume,
                     currency=currency,
                     timestamp=datetime.now(timezone.utc).strftime(
-                        "%Y-%m-%d %H:%M UTC"
+                        TIMESTAMP_FORMAT
                     ),
                 )
             )
@@ -120,7 +125,7 @@ def fetch_oil_prices() -> list[OilMarketData]:
                     volume=None,
                     currency="USD",
                     timestamp=datetime.now(timezone.utc).strftime(
-                        "%Y-%m-%d %H:%M UTC"
+                        TIMESTAMP_FORMAT
                     ),
                 )
             )
@@ -130,7 +135,7 @@ def fetch_oil_prices() -> list[OilMarketData]:
 
 def format_price_text(data_list: list[OilMarketData]) -> str:
     """将石油价格数据格式化为纯文本"""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(timezone.utc).strftime(TIMESTAMP_FORMAT)
     lines = [
         "=" * 60,
         f"  全球主要石油市场每日价格报告",
@@ -183,8 +188,6 @@ def format_price_text(data_list: list[OilMarketData]) -> str:
 
 def format_price_html(data_list: list[OilMarketData]) -> str:
     """将石油价格数据格式化为 HTML 邮件内容"""
-    from jinja2 import Template
-
     template_str = """\
 <!DOCTYPE html>
 <html>
@@ -261,5 +264,5 @@ def format_price_html(data_list: list[OilMarketData]) -> str:
 </html>"""
 
     template = Template(template_str)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(timezone.utc).strftime(TIMESTAMP_FORMAT)
     return template.render(data_list=data_list, report_time=now)

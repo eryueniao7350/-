@@ -2,9 +2,12 @@ name: Daily Oil Market Report
 
 on:
   schedule:
-    # 每天 UTC 时间 06:00 运行 (北京时间 14:00)
+    # 每天 UTC 时间 06:00 运行 (北京时间 14:00, UTC+8)
     - cron: '0 6 * * *'
   workflow_dispatch:  # 允许手动触发
+
+permissions:
+  contents: read
 
 jobs:
   fetch-and-send:

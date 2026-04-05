@@ -42,7 +42,7 @@ Automatically fetches global oil market prices and sends a daily email report.
 
 ### 2. 自动运行
 
-GitHub Actions 工作流已配置为 **每天 UTC 06:00（北京时间 14:00）** 自动运行。
+GitHub Actions 工作流已配置为 **每天 UTC 06:00（北京时间 14:00, UTC+8）** 自动运行。
 
 你也可以在 **Actions** 标签页中手动触发工作流（workflow_dispatch）。
 
