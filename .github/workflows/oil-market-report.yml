@@ -1,0 +1,35 @@
+name: 全球石油市场每日报告
+
+on:
+  # 每天北京时间早上 8:00 (UTC 0:00) 自动运行
+  schedule:
+    - cron: '0 0 * * *'
+
+  # 支持手动触发
+  workflow_dispatch:
+
+jobs:
+  send-oil-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch oil prices and send email
+        working-directory: src
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: python main.py
