@@ -10,8 +10,6 @@ from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import yfinance as yf
-
 
 # ---------------------------------------------------------------------------
 # Oil market symbols and their display names
@@ -65,6 +63,23 @@ DUBAI_NOTE = (
 
 def fetch_prices() -> list[dict]:
     """Fetch the latest price for each oil symbol from Yahoo Finance."""
+    try:
+        import yfinance as yf
+    except ImportError as exc:
+        return [
+            {
+                "symbol": symbol,
+                "name": meta["name"],
+                "name_en": meta["name_en"],
+                "unit": meta["unit"],
+                "price": None,
+                "change": None,
+                "change_pct": None,
+                "error": f"依赖缺失: {exc}",
+            }
+            for symbol, meta in OIL_SYMBOLS.items()
+        ]
+
     results = []
     for symbol, meta in OIL_SYMBOLS.items():
         try:
@@ -122,6 +137,11 @@ def fetch_prices() -> list[dict]:
                 }
             )
     return results
+
+
+def has_successful_prices(prices: list[dict]) -> bool:
+    """Return True when at least one instrument was fetched successfully."""
+    return any(item["error"] is None for item in prices)
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +319,10 @@ def main() -> None:
     # Print report to stdout (useful for logs / dry-run)
     print("\n--- 纯文本报告 ---")
     print(text)
+
+    if not has_successful_prices(prices):
+        print("\n❌ 所有品种都获取失败，停止发送邮件并返回非零退出码。")
+        sys.exit(1)
 
     # Send email only when the required environment variables are present
     if all(k in os.environ for k in ("EMAIL_SENDER", "EMAIL_PASSWORD", "EMAIL_RECEIVER")):

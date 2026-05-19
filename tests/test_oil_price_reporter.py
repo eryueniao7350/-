@@ -4,10 +4,19 @@ Tests for oil_price_reporter.py
 
 import sys
 import os
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from oil_price_reporter import build_html, build_text, _change_html
+import pytest
+
+from oil_price_reporter import (
+    _change_html,
+    build_html,
+    build_text,
+    has_successful_prices,
+    main,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -140,3 +149,48 @@ def test_build_html_contains_report_time():
 def test_build_html_contains_opec_link():
     html = build_html(SAMPLE_PRICES, REPORT_TIME)
     assert "https://www.opec.org/opec_web/en/data_graphs/40.htm" in html
+
+
+def test_has_successful_prices_true():
+    assert has_successful_prices(SAMPLE_PRICES) is True
+
+
+def test_has_successful_prices_false():
+    failed_prices = [
+        {
+            "symbol": "CL=F",
+            "name": "WTI 原油 (纽约商品交易所)",
+            "name_en": "WTI Crude Oil (NYMEX)",
+            "unit": "USD/桶",
+            "price": None,
+            "change": None,
+            "change_pct": None,
+            "error": "网络异常",
+        }
+    ]
+    assert has_successful_prices(failed_prices) is False
+
+
+def test_main_exits_nonzero_when_all_fetches_fail(monkeypatch):
+    failed_prices = [
+        {
+            "symbol": "CL=F",
+            "name": "WTI 原油 (纽约商品交易所)",
+            "name_en": "WTI Crude Oil (NYMEX)",
+            "unit": "USD/桶",
+            "price": None,
+            "change": None,
+            "change_pct": None,
+            "error": "网络异常",
+        }
+    ]
+
+    monkeypatch.delenv("EMAIL_SENDER", raising=False)
+    monkeypatch.delenv("EMAIL_PASSWORD", raising=False)
+    monkeypatch.delenv("EMAIL_RECEIVER", raising=False)
+
+    with patch("oil_price_reporter.fetch_prices", return_value=failed_prices):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+    assert exc_info.value.code == 1
