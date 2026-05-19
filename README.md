@@ -58,13 +58,21 @@ python src/oil_price_reporter.py
 ```
 
 若未设置邮件环境变量，脚本会打印报告内容到终端并跳过发送。
+若所有品种都抓取失败，脚本会返回非零退出码，方便 GitHub Actions 明确标红。
 
 ## 运行测试
 
 ```bash
-pip install pytest
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
+
+## GitHub Actions 行为
+
+- 每日定时任务会先安装运行依赖和测试依赖
+- 先跑测试，再执行抓取与发信
+- 如果所有行情抓取都失败，workflow 会失败，避免悄悄发送一封全是错误的日报
 
 ## 数据来源
 
